@@ -1,69 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import api from './api';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import PrivateRoute from './components/PrivateRoute';
+import TradeApp from './TradeApp'; // your existing trade UI
 
-function App() {
-  const [trades, setTrades] = useState([]);
-  const [error, setError] = useState('');
-  const [newTrade, setNewTrade] = useState({ symbol: '', action: '', price: '' });
-
-  useEffect(() => {
-    fetchTrades();
-  }, []);
-
-  const fetchTrades = () => {
-    api.get('/api/trades')
-      .then((res) => setTrades(res.data))
-      .catch((err) => setError('Failed to load trades'));
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNewTrade(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    api.post('/api/trades', newTrade, {
-      headers: {
-        // Authorization: `Bearer <token>` if needed
-      }
-    }).then((res) => {
-      setTrades(prev => [...prev, res.data]);
-      setNewTrade({ symbol: '', action: '', price: '' });
-    }).catch(() => {
-      setError('Error adding trade');
-    });
-  };
-
-  const handleDelete = (id) => {
-    api.delete(`/api/trades/${id}`, {
-      headers: {
-        // Authorization: `Bearer <token>` if needed
-      }
-    }).then(() => fetchTrades())
-      .catch(() => setError('Error deleting trade'));
+export default function App() {
+  const logout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>📊 Copy Trading App</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
-        <input type="text" name="symbol" placeholder="Symbol" value={newTrade.symbol} onChange={handleChange} required />
-        <input type="text" name="action" placeholder="Action (buy/sell)" value={newTrade.action} onChange={handleChange} required />
-        <input type="number" name="price" placeholder="Price" value={newTrade.price} onChange={handleChange} required />
-        <button type="submit">Add Trade</button>
-      </form>
-      <ul>
-        {trades.map((trade) => (
-          <li key={trade.id}>
-            {trade.symbol} - {trade.action} at ${trade.price} {' '}
-            <button onClick={() => handleDelete(trade.id)}>❌ Delete</button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <BrowserRouter>
+      <nav>
+        <Link to="/">Home</Link> | <Link to="/register">Register</Link> | <Link to="/login">Login</Link> | <button onClick={logout}>Logout</button>
+      </nav>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <TradeApp />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
