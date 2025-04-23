@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://copy-trading-backend-ksfs.onrender.com',
+  baseURL: process.env.REACT_APP_API_URL,
 });
 
 export default api;
