@@ -1,8 +1,6 @@
 // backend/src/server.js
-
-// 1. Load env & Sentry
 require('dotenv').config();
-require('../instrument');
+require('../instrument'); // initializes Sentry first
 
 const express = require('express');
 const cors    = require('cors');
@@ -14,40 +12,43 @@ const tradeRoutes = require('./routes/tradeRoutes');
 
 const app = express();
 
-// 2. CORS
+// CORS to allow React dev at localhost:3000
 app.use(cors({
   origin: 'http://localhost:3000',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true,
+  credentials: true
 }));
 
-// 3. Sentry middleware
+// Sentry request & tracing handlers
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
-// 4. JSON body parsing
+// JSON body parser
 app.use(express.json());
 
-// 5. Health check
+// Health check
 app.get('/', (req, res) => res.send('Backend is working!'));
 
-// 6. Debug Sentry
-app.get('/debug-sentry', (req, res, next) => next(new Error('Sentry OK')));
+// Debug route for Sentry
+app.get('/debug-sentry', (req, res, next) => {
+  next(new Error('Sentry OK')); // passes to error handler :contentReference[oaicite:4]{index=4}
+});
 
-// 7. Mount routes
+// Mount API routes
 app.use('/api/auth',  authRoutes);
 app.use('/api/trades', tradeRoutes);
 
-// 8. Sentry error handler
+// Sentry error handler (last middleware)
 app.use(Sentry.Handlers.errorHandler());
 
-// 9. Connect & start
+// Connect to MongoDB & start server
 mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true, useUnifiedTopology: true
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 })
 .then(() => {
   console.log('✅ MongoDB connected');
   app.listen(process.env.PORT||5000, () => console.log('🚀 Server running'));
 })
-.catch(err => console.error('❌ MongoDB error:', err));
+.catch(err => console.error('❌ MongoDB connection error:', err));
