@@ -1,12 +1,18 @@
+// frontend/src/App.js
+
 import React, { useEffect, useState } from 'react';
 import api from './api';
 
 function App() {
   const [trades, setTrades] = useState([]);
-  const [error, setError] = useState('');
-  const [newTrade, setNewTrade] = useState({ symbol: '', action: '', price: '' });
+  const [error, setError]   = useState('');
+  const [newTrade, setNewTrade] = useState({
+    symbol: '',
+    action: '',
+    price: ''
+  });
 
-  // Fetch all trades on mount
+  // 1. Fetch trades when component mounts
   useEffect(() => {
     fetchTrades();
   }, []);
@@ -20,14 +26,14 @@ function App() {
     }
   };
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
+  // 2. Handle form input
+  const handleInputChange = e => {
     const { name, value } = e.target;
     setNewTrade(prev => ({ ...prev, [name]: value }));
   };
 
-  // Submit new trade (buy/sell)
-  const handleFormSubmit = async (e) => {
+  // 3. Add a new trade (buy/sell)
+  const handleFormSubmit = async e => {
     e.preventDefault();
     try {
       const res = await api.post('/api/trades', newTrade);
@@ -38,8 +44,8 @@ function App() {
     }
   };
 
-  // Delete a trade by its MongoDB _id
-  const handleDelete = async (id) => {
+  // 4. Delete a trade by its MongoDB _id
+  const handleDelete = async id => {
     try {
       await api.delete(`/api/trades/${id}`);
       setTrades(prev => prev.filter(t => t._id !== id));
@@ -83,9 +89,12 @@ function App() {
 
       <ul>
         {trades.map(trade => (
+          // key must be unique: use the MongoDB _id field
           <li key={trade._id}>
             {trade.symbol} - {trade.action} at ${trade.price}{' '}
-            <button onClick={() => handleDelete(trade._id)}>Delete</button>
+            <button onClick={() => handleDelete(trade._id)}>
+              Delete
+            </button>
           </li>
         ))}
       </ul>
