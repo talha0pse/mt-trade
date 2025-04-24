@@ -1,16 +1,20 @@
 // backend/src/server.js
 
-// 1. Load environment variables and initialize Sentry
+// 1. Load env & Sentry
 require('dotenv').config();
-require('../instrument');            // runs Sentry.init() before Express
+require('../instrument');
 
 const express = require('express');
 const cors    = require('cors');
 const Sentry  = require('@sentry/node');
+const mongoose= require('mongoose');
+
+const authRoutes  = require('./routes/authRoutes');
+const tradeRoutes = require('./routes/tradeRoutes');
 
 const app = express();
 
-// 2. Enable CORS for your React app
+// 2. CORS
 app.use(cors({
   origin: 'http://localhost:3000',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
@@ -18,41 +22,32 @@ app.use(cors({
   credentials: true,
 }));
 
-// 3. Attach Sentry middleware before all routes
+// 3. Sentry middleware
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
-// 4. Parse JSON bodies
+// 4. JSON body parsing
 app.use(express.json());
 
-// 5. Root health check
-app.get('/', (req, res) => {
-  res.status(200).send('Backend is working!');
-});
+// 5. Health check
+app.get('/', (req, res) => res.send('Backend is working!'));
 
-// 6. Debug route to test Sentry
-app.get('/debug-sentry', (req, res) => {
-  throw new Error('Sentry OK');
-});
+// 6. Debug Sentry
+app.get('/debug-sentry', (req, res, next) => next(new Error('Sentry OK')));
 
-// 7. Your API routes
-app.use('/api/auth',  require('./routes/authRoutes'));
-app.use('/api/trades', require('./routes/tradeRoutes'));
+// 7. Mount routes
+app.use('/api/auth',  authRoutes);
+app.use('/api/trades', tradeRoutes);
 
-// 8. Sentry error handler (must come last)
+// 8. Sentry error handler
 app.use(Sentry.Handlers.errorHandler());
 
-// 9. Connect to MongoDB and start the server
-const mongoose = require('mongoose');
-const PORT     = process.env.PORT || 5000;
-
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// 9. Connect & start
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true, useUnifiedTopology: true
+})
+.then(() => {
+  console.log('✅ MongoDB connected');
+  app.listen(process.env.PORT||5000, () => console.log('🚀 Server running'));
+})
+.catch(err => console.error('❌ MongoDB error:', err));
