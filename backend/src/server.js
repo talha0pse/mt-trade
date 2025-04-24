@@ -1,22 +1,27 @@
 // backend/src/server.js
 
-// 1. Import the auto-generated Sentry config first
-require('../instrument');   // ← this is the wizard-generated file
+// 1. Import Sentry initialization FIRST
+require('../instrument'); // Make sure this path is correct
 
-// 2. Now import Express and the rest
 const express = require('express');
-const app     = express();
+const Sentry = require('@sentry/node'); // Import once here
+const app = express();
 
-// 3. (No need to manually call requestHandler() or errorHandler())
-//    The wizard’s file already patched in the correct middleware.
+// 2. Attach Sentry middleware BEFORE your routes
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 
+// 3. Your application routes
 app.use(express.json());
-app.use('/api/auth',  require('./routes/authRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/trades', require('./routes/tradeRoutes'));
 
-// 4. Finally, start your server as before
+// 4. Sentry error handler AFTER your routes
+app.use(Sentry.Handlers.errorHandler());
+
+// 5. MongoDB connection and server start
 const mongoose = require('mongoose');
-const PORT     = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 mongoose
   .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
