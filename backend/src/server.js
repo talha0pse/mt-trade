@@ -14,10 +14,6 @@ app.use(express.json());
 app.use('/api/auth',  require('./routes/authRoutes'));
 app.use('/api/trades', require('./routes/tradeRoutes'));
 
-app.get('/debug-sentry', (req, res) => {
-  // This will throw an exception that Sentry should capture
-  throw new Error('Sentry OK');
-});
 
 
 // 3. Add Sentry’s Express error handler *after* all routes
