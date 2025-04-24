@@ -1,36 +1,40 @@
 // backend/src/server.js
+
+// 1. Load environment variables first
 require('dotenv').config();
 
 const express = require('express');
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
 
-// 1. Create your Express app first
 const app = express();
 
-// 2. Initialize Sentry WITH the Express integration
+// 2. Initialize Sentry with HTTP & Express tracing integrations
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   integrations: [
-    // Capture HTTP calls (outgoing)
+    // Captures outgoing HTTP requests & breadcrumbs
     new Sentry.Integrations.Http({ tracing: true }),
-    // Attach to your Express app for incoming requests
+    // Instruments incoming Express requests
     new Tracing.Integrations.Express({ app }),
   ],
-  tracesSampleRate: 1.0, // adjust in prod
+  tracesSampleRate: 1.0, // adjust down (e.g. 0.2) in production
 });
 
-// 3. Add Sentry middleware BEFORE your routes
-app.use(Sentry.Handlers.requestHandler());  // start request capture
-app.use(Sentry.Handlers.tracingHandler());  // start performance monitoring
+// 3. Request handler must come before your routes
+app.use(Sentry.Handlers.requestHandler());
+// 4. Tracing handler to capture performance
+app.use(Sentry.Handlers.tracingHandler());
 
-// 4. Import routes and other middleware from app.js (if you split them)
-require('./app')(app);  // assume app.js exports a function that sets up routes
+// 5. Add your JSON/body middleware and routes
+app.use(express.json());
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/trades', require('./routes/tradeRoutes'));
 
-// 5. Add the error handler as the last middleware
+// 6. Error handler must come after all routes
 app.use(Sentry.Handlers.errorHandler());
 
-// 6. Connect to MongoDB and start the server
+// 7. Connect to MongoDB and start server
 const mongoose = require('mongoose');
 const PORT = process.env.PORT || 5000;
 
