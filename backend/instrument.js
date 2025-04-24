@@ -1,16 +1,16 @@
 // backend/instrument.js
 
-// 1. Load env vars so process.env.SENTRY_DSN is available
+// 1. Load environment variables so process.env.SENTRY_DSN is set
 require('dotenv').config();
 
-// 2. Import & initialize Sentry **before** any other modules
+// 2. Import Sentry and initialize it
 const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 
+// 3. Initialize Sentry with DSN and enable performance tracing
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,       // your DSN from Sentry UI :contentReference[oaicite:1]{index=1}
-  tracesSampleRate: 1.0,             // capture all transactions for now :contentReference[oaicite:2]{index=2}
+  dsn: process.env.SENTRY_DSN,      // your Sentry DSN from Client Keys :contentReference[oaicite:0]{index=0}
+  tracesSampleRate: 1.0,            // 100% sampling for testing; lower in production :contentReference[oaicite:1]{index=1}
 });
 
-// 3. (Optional) You can export Sentry if you need to use it elsewhere:
+// 4. (Optional) export Sentry for use elsewhere
 module.exports = Sentry;
