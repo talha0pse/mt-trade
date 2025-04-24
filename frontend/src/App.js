@@ -1,103 +1,161 @@
-// frontend/src/App.js
-
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from './api';
 
 function App() {
+  // view: 'login' | 'register' | 'trades'
+  const [view, setView] = useState('login');
+  const [authForm, setAuthForm] = useState({ email: '', password: '' });
+  const [tradeForm, setTradeForm] = useState({ symbol: '', action: '', price: '' });
+  const [error, setError] = useState('');
   const [trades, setTrades] = useState([]);
-  const [error, setError]   = useState('');
-  const [newTrade, setNewTrade] = useState({
-    symbol: '',
-    action: '',
-    price: ''
-  });
 
-  // 1. Fetch trades when component mounts
+  // When we switch to trades view, fetch the list
   useEffect(() => {
-    fetchTrades();
-  }, []);
+    if (view === 'trades') fetchTrades();
+  }, [view]);
+
+  const handleAuthChange = e => {
+    const { name, value } = e.target;
+    setAuthForm(f => ({ ...f, [name]: value }));
+  };
+
+  const handleRegister = async e => {
+    e.preventDefault();
+    try {
+      await api.post('/api/auth/register', authForm);
+      setError('');
+      setAuthForm({ email: '', password: '' });
+      setView('login');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Registration failed');
+    }
+  };
+
+  const handleLogin = async e => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/api/auth/login', authForm);
+      localStorage.setItem('token', res.data.token);
+      setError('');
+      setAuthForm({ email: '', password: '' });
+      setView('trades');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Login failed');
+    }
+  };
 
   const fetchTrades = async () => {
     try {
       const res = await api.get('/api/trades');
       setTrades(res.data);
+      setError('');
     } catch (err) {
       setError('Error fetching trades');
     }
   };
 
-  // 2. Handle form input
-  const handleInputChange = e => {
+  const handleTradeChange = e => {
     const { name, value } = e.target;
-    setNewTrade(prev => ({ ...prev, [name]: value }));
+    setTradeForm(f => ({ ...f, [name]: value }));
   };
 
-  // 3. Add a new trade (buy/sell)
-  const handleFormSubmit = async e => {
+  const handleAddTrade = async e => {
     e.preventDefault();
     try {
-      const res = await api.post('/api/trades', newTrade);
-      setTrades(prev => [...prev, res.data]);
-      setNewTrade({ symbol: '', action: '', price: '' });
+      const res = await api.post('/api/trades', tradeForm);
+      setTrades(t => [...t, res.data]);
+      setTradeForm({ symbol: '', action: '', price: '' });
+      setError('');
     } catch (err) {
       setError('Error adding trade');
     }
   };
 
-  // 4. Delete a trade by its MongoDB _id
-  const handleDelete = async id => {
+  const handleDeleteTrade = async id => {
     try {
       await api.delete(`/api/trades/${id}`);
-      setTrades(prev => prev.filter(t => t._id !== id));
+      setTrades(t => t.filter(x => x._id !== id));
+      setError('');
     } catch (err) {
       setError('Error deleting trade');
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setTrades([]);
+    setView('login');
+  };
+
   return (
-    <div className="App">
-      <h1>Copy Trading Frontend</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      <form onSubmit={handleFormSubmit}>
-        <input
-          type="text"
-          name="symbol"
-          placeholder="Symbol"
-          value={newTrade.symbol}
-          onChange={handleInputChange}
-          required
-        />
-        <input
-          type="text"
-          name="action"
-          placeholder="Action (buy/sell)"
-          value={newTrade.action}
-          onChange={handleInputChange}
-          required
-        />
-        <input
-          type="number"
-          name="price"
-          placeholder="Price"
-          value={newTrade.price}
-          onChange={handleInputChange}
-          required
-        />
-        <button type="submit">Add Trade</button>
-      </form>
-
-      <ul>
-        {trades.map(trade => (
-          // key must be unique: use the MongoDB _id field
-          <li key={trade._id}>
-            {trade.symbol} - {trade.action} at ${trade.price}{' '}
-            <button onClick={() => handleDelete(trade._id)}>
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
+    <div style={{ padding: 20 }}>
+      {view !== 'trades' && (
+        <button onClick={() => setView(view === 'login' ? 'register' : 'login')}>
+          {view === 'login' ? 'Go to Register' : 'Go to Login'}
+        </button>
+      )}
+      {view === 'register' && (
+        <form onSubmit={handleRegister}>
+          <h2>Register</h2>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+          <input
+            name="email" type="email" placeholder="Email"
+            value={authForm.email} onChange={handleAuthChange} required
+          /><br/>
+          <input
+            name="password" type="password" placeholder="Password"
+            value={authForm.password} onChange={handleAuthChange} required
+          /><br/>
+          <button type="submit">Register</button>
+        </form>
+      )}
+      {view === 'login' && (
+        <form onSubmit={handleLogin}>
+          <h2>Login</h2>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+          <input
+            name="email" type="email" placeholder="Email"
+            value={authForm.email} onChange={handleAuthChange} required
+          /><br/>
+          <input
+            name="password" type="password" placeholder="Password"
+            value={authForm.password} onChange={handleAuthChange} required
+          /><br/>
+          <button type="submit">Login</button>
+        </form>
+      )}
+      {view === 'trades' && (
+        <>
+          <h2>Trades</h2>
+          <button onClick={handleLogout}>Logout</button>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+          <form onSubmit={handleAddTrade}>
+            <input
+              name="symbol" placeholder="Symbol"
+              value={tradeForm.symbol} onChange={handleTradeChange} required
+            />
+            <input
+              name="action" placeholder="Action (buy/sell)"
+              value={tradeForm.action} onChange={handleTradeChange} required
+            />
+            <input
+              name="price" type="number" placeholder="Price"
+              value={tradeForm.price} onChange={handleTradeChange} required
+            />
+            <button type="submit">Add Trade</button>
+          </form>
+          <ul>
+            {trades.map(trade => (
+              <li key={trade._id}>
+                {trade.symbol} - {trade.action} at ${trade.price}{' '}
+                <button onClick={() => handleDeleteTrade(trade._id)}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
