@@ -1,6 +1,8 @@
 // backend/src/server.js
+
+// 1. Load environment variables and initialize Sentry
 require('dotenv').config();
-require('../instrument'); // initializes Sentry first
+require('../instrument'); // runs Sentry.init()
 
 const express = require('express');
 const cors    = require('cors');
@@ -12,43 +14,53 @@ const tradeRoutes = require('./routes/tradeRoutes');
 
 const app = express();
 
-// CORS to allow React dev at localhost:3000
+// 2. Enable CORS
 app.use(cors({
   origin: 'http://localhost:3000',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true
+  credentials: true,
 }));
 
-// Sentry request & tracing handlers
+// 3. Sentry request & tracing handlers
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
-// JSON body parser
+// 4. Body parser
 app.use(express.json());
 
-// Health check
-app.get('/', (req, res) => res.send('Backend is working!'));
+// 5. Health check
+app.get('/', (req, res) => res.status(200).send('Backend is working!'));
 
-// Debug route for Sentry
+// 6. Debug route
 app.get('/debug-sentry', (req, res, next) => {
-  next(new Error('Sentry OK')); // passes to error handler :contentReference[oaicite:4]{index=4}
+  // This error will be captured by Sentry
+  next(new Error('Sentry OK'));
 });
 
-// Mount API routes
+// 7. Mount your API routes
 app.use('/api/auth',  authRoutes);
 app.use('/api/trades', tradeRoutes);
 
-// Sentry error handler (last middleware)
+// 8. Sentry error handler (captures & reports errors)
 app.use(Sentry.Handlers.errorHandler());
 
-// Connect to MongoDB & start server
+// 9. Final Express error handler (returns JSON)
+//    This prevents blank 500 pages and handles all errors uniformly.
+app.use((err, req, res, next) => {
+  console.error(err); // still log to console
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error'
+  });
+});
+
+// 10. Connect to MongoDB & start server
+const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+  useNewUrlParser: true, useUnifiedTopology: true
 })
 .then(() => {
   console.log('✅ MongoDB connected');
-  app.listen(process.env.PORT||5000, () => console.log('🚀 Server running'));
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 })
 .catch(err => console.error('❌ MongoDB connection error:', err));
