@@ -1,47 +1,56 @@
 // backend/src/server.js
 
-// 1. Load environment variables first
+// 1. Load env vars and Sentry BEFORE requiring express
 require('dotenv').config();
 
-const express = require('express');
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
 
-const app = express();
-
-// 2. Initialize Sentry with correct integrations
+// 2. Initialize Sentry – BEFORE express is imported!
+//    - Turn off all default integrations to avoid broken hooks
+//    - Explicitly add only the HTTP & Express integrations you need
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
+  defaultIntegrations: false,    // disable all auto-enabled SDK integrations :contentReference[oaicite:1]{index=1}
   integrations: [
-    // Outgoing HTTP spans & breadcrumbs
-    Sentry.httpIntegration(),                     
-    // Incoming request tracing for Express
-    new Tracing.Integrations.Express({ app }),     
+    Sentry.httpIntegration(),     // outgoing HTTP spans & breadcrumbs :contentReference[oaicite:2]{index=2}
+    new Tracing.Integrations.Express({ app: undefined }), // placeholder, patched below
   ],
-  tracesSampleRate: 1.0, // adjust (e.g., 0.2) in production
+  tracesSampleRate: 1.0,          // full performance sampling for testing
 });
 
-// 3. Sentry Request & Tracing Handlers
-app.use(Sentry.Handlers.requestHandler());         // starts context
-app.use(Sentry.Handlers.tracingHandler());         // starts perf monitoring
+// 3. Now import Express & create the app
+const express = require('express');
+const app = express();
 
-// 4. Your app’s JSON/body parser and routes
+// 4. Patch the Express integration to receive the real app reference
+//    (workaround because we had to init before express import)
+const expressIntegration = Sentry.getCurrentHub()
+  .getClient()
+  .getIntegrations()
+  .find(i => i.name === 'Express');
+if (expressIntegration) {
+  expressIntegration._module.handler = app; // internal hook setup
+}
+
+// 5. Sentry request + tracing middleware (in this order!)
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
+
+// 6. Your routes & middleware
 app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/trades', require('./routes/tradeRoutes'));
 
-// 5. Sentry Error Handler (last)
+// 7. Sentry error handler (last)
 app.use(Sentry.Handlers.errorHandler());
 
-// 6. Connect to MongoDB and launch
+// 8. Connect to MongoDB and start the server
 const mongoose = require('mongoose');
 const PORT = process.env.PORT || 5000;
 
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log('✅ MongoDB connected');
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
