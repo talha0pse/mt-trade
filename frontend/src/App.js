@@ -1,37 +1,96 @@
-// src/App.js
-import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import PrivateRoute from './components/PrivateRoute';
-import TradeApp from './TradeApp';      // <-- this now points to the file you created
+import React, { useEffect, useState } from 'react';
+import api from './api';
 
-export default function App() {
-  const logout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+function App() {
+  const [trades, setTrades] = useState([]);
+  const [error, setError] = useState('');
+  const [newTrade, setNewTrade] = useState({ symbol: '', action: '', price: '' });
+
+  // Fetch all trades on mount
+  useEffect(() => {
+    fetchTrades();
+  }, []);
+
+  const fetchTrades = async () => {
+    try {
+      const res = await api.get('/api/trades');
+      setTrades(res.data);
+    } catch (err) {
+      setError('Error fetching trades');
+    }
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewTrade(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Submit new trade (buy/sell)
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/api/trades', newTrade);
+      setTrades(prev => [...prev, res.data]);
+      setNewTrade({ symbol: '', action: '', price: '' });
+    } catch (err) {
+      setError('Error adding trade');
+    }
+  };
+
+  // Delete a trade by its MongoDB _id
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/api/trades/${id}`);
+      setTrades(prev => prev.filter(t => t._id !== id));
+    } catch (err) {
+      setError('Error deleting trade');
+    }
   };
 
   return (
-    <BrowserRouter>
-      <nav>
-        <Link to="/">Home</Link> |{' '}
-        <Link to="/register">Register</Link> |{' '}
-        <Link to="/login">Login</Link> |{' '}
-        <button onClick={logout}>Logout</button>
-      </nav>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <TradeApp />
-            </PrivateRoute>
-          }
+    <div className="App">
+      <h1>Copy Trading Frontend</h1>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      <form onSubmit={handleFormSubmit}>
+        <input
+          type="text"
+          name="symbol"
+          placeholder="Symbol"
+          value={newTrade.symbol}
+          onChange={handleInputChange}
+          required
         />
-      </Routes>
-    </BrowserRouter>
+        <input
+          type="text"
+          name="action"
+          placeholder="Action (buy/sell)"
+          value={newTrade.action}
+          onChange={handleInputChange}
+          required
+        />
+        <input
+          type="number"
+          name="price"
+          placeholder="Price"
+          value={newTrade.price}
+          onChange={handleInputChange}
+          required
+        />
+        <button type="submit">Add Trade</button>
+      </form>
+
+      <ul>
+        {trades.map(trade => (
+          <li key={trade._id}>
+            {trade.symbol} - {trade.action} at ${trade.price}{' '}
+            <button onClick={() => handleDelete(trade._id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
+
+export default App;
