@@ -1,0 +1,30 @@
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: mt_db
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - '5000:5000'   # Exposing backend correctly
+    environment:
+      MONGO_URI: mongodb://mongo:27017/mt_db
+      JWT_SECRET: mySuperSecretKey
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - '3000:80'    # Exposing frontend correctly
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:

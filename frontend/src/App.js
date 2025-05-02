@@ -2,23 +2,30 @@ import React, { useState, useEffect } from 'react';
 import api from './api';
 
 function App() {
-  // view: 'login' | 'register' | 'trades'
-  const [view, setView] = useState('login');
+  const [view, setView] = useState('login'); // 'login' | 'register' | 'trades'
   const [authForm, setAuthForm] = useState({ email: '', password: '' });
   const [tradeForm, setTradeForm] = useState({ symbol: '', action: '', price: '' });
   const [error, setError] = useState('');
   const [trades, setTrades] = useState([]);
 
-  // When we switch to trades view, fetch the list
   useEffect(() => {
-    if (view === 'trades') fetchTrades();
+    if (view === 'trades') {
+      fetchTrades();
+    }
   }, [view]);
 
+  // Shared change handler
   const handleAuthChange = e => {
     const { name, value } = e.target;
     setAuthForm(f => ({ ...f, [name]: value }));
   };
 
+  const handleTradeChange = e => {
+    const { name, value } = e.target;
+    setTradeForm(f => ({ ...f, [name]: value }));
+  };
+
+  // REGISTER
   const handleRegister = async e => {
     e.preventDefault();
     try {
@@ -31,6 +38,7 @@ function App() {
     }
   };
 
+  // LOGIN
   const handleLogin = async e => {
     e.preventDefault();
     try {
@@ -44,21 +52,18 @@ function App() {
     }
   };
 
+  // FETCH TRADES
   const fetchTrades = async () => {
     try {
       const res = await api.get('/api/trades');
       setTrades(res.data);
       setError('');
-    } catch (err) {
+    } catch {
       setError('Error fetching trades');
     }
   };
 
-  const handleTradeChange = e => {
-    const { name, value } = e.target;
-    setTradeForm(f => ({ ...f, [name]: value }));
-  };
-
+  // ADD TRADE
   const handleAddTrade = async e => {
     e.preventDefault();
     try {
@@ -66,21 +71,23 @@ function App() {
       setTrades(t => [...t, res.data]);
       setTradeForm({ symbol: '', action: '', price: '' });
       setError('');
-    } catch (err) {
+    } catch {
       setError('Error adding trade');
     }
   };
 
+  // DELETE TRADE
   const handleDeleteTrade = async id => {
     try {
       await api.delete(`/api/trades/${id}`);
       setTrades(t => t.filter(x => x._id !== id));
       setError('');
-    } catch (err) {
+    } catch {
       setError('Error deleting trade');
     }
   };
 
+  // LOGOUT
   const handleLogout = () => {
     localStorage.removeItem('token');
     setTrades([]);
@@ -88,12 +95,15 @@ function App() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, maxWidth: 400, margin: 'auto' }}>
+      {/* Toggle Login/Register */}
       {view !== 'trades' && (
-        <button onClick={() => setView(view === 'login' ? 'register' : 'login')}>
+        <button onClick={() => setView(v => v === 'login' ? 'register' : 'login')}>
           {view === 'login' ? 'Go to Register' : 'Go to Login'}
         </button>
       )}
+
+      {/* REGISTER FORM */}
       {view === 'register' && (
         <form onSubmit={handleRegister}>
           <h2>Register</h2>
@@ -109,6 +119,8 @@ function App() {
           <button type="submit">Register</button>
         </form>
       )}
+
+      {/* LOGIN FORM */}
       {view === 'login' && (
         <form onSubmit={handleLogin}>
           <h2>Login</h2>
@@ -124,6 +136,8 @@ function App() {
           <button type="submit">Login</button>
         </form>
       )}
+
+      {/* TRADES VIEW */}
       {view === 'trades' && (
         <>
           <h2>Trades</h2>
