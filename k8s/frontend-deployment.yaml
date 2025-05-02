@@ -13,8 +13,7 @@ spec:
         app: frontend
     spec:
       containers:
-      - name: frontend
-        image: talha0pse/mt-frontend:latest
-        ports:
-        - containerPort: 3000
-
+        - name: frontend
+          image: talha0pse/frontend:latest  # Use your actual DockerHub or ECR image
+          ports:
+            - containerPort: 3000
