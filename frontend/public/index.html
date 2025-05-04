@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <title>React App</title>
+
+    <!-- 1. Configure custom init BEFORE loading the Sentry bundle -->
+    <script>
+      window.sentryOnLoad = function () {
+        // Sentry.init is called automatically by the Loader,
+        // but you can override or extend the default options here.
+        Sentry.init({
+          // DSN is already configured in the loader script settings,
+          // but you can repeat it here if you like:
+          dsn: "https://cb6bb7cc013b81bcc940fca3043d10f6@o4509205567307776.ingest.de.sentry.io/4509205674459216",
+          // Enable Performance Tracing
+          integrations: [
+            new Sentry.BrowserTracing(),
+            // Enable Session Replay with desired masking options
+            new Sentry.Replay({
+              maskAllInputs: false,
+              maskAllText: false,
+            }),
+          ],
+          // Capture 100% of transactions (tune down in production)
+          tracesSampleRate: 1.0,
+          // Capture Replays for 10% of all sessions
+          replaysSessionSampleRate: 0.1,
+          // Capture Replays for all sessions with errors
+          replaysOnErrorSampleRate: 1.0,
+        });
+      };
+    </script>
+
+    <!-- 2. Load the combined SDK bundle with Tracing + Replay -->
+    <script
+      src="https://browser.sentry-cdn.com/9.14.0/bundle.tracing.replay.min.js"
+      integrity="sha384-+1l5MMpxbDLeTd9fz5V+VO7KDo47NfbDwZ7H4jdpBmkrXpG3D38BgeKwvAdozKaZ"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

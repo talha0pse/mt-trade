@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mt-backend
+  namespace: mt-project
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mt-backend
+  template:
+    metadata:
+      labels:
+        app: mt-backend
+    spec:
+      containers:
+      - name: mt-backend
+        image: talha0pse/mt-backend:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: MONGODB_URI
+          value: "YOUR_MONGODB_CONNECTION_STRING"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mt-backend-service
+  namespace: mt-project
+spec:
+  type: LoadBalancer
+  selector:
+    app: mt-backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
