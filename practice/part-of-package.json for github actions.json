@@ -1,6 +1,0 @@
-
-"scripts":
-{
-    "start" : "node src/erver.js",
-    "test" : "echo \"no tests yet\" && exit 0"
-}
