@@ -1,6 +1,7 @@
 // backend/src/routes/tradeRoutes.js
 const express = require('express');
 const auth    = require('../middleware/authMiddleware');
+const rateLimit = require('express-rate-limit');
 const Trade   = require('../models/Trade');
 const router  = express.Router();
 
@@ -43,7 +44,12 @@ router.put('/:id', auth, async (req, res, next) => {
 });
 
 // Delete a trade
-router.delete('/:id', auth, async (req, res, next) => {
+const deleteTradeLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: { error: 'Too many delete requests, please try again later.' },
+});
+router.delete('/:id', auth, deleteTradeLimiter, async (req, res, next) => {
   try {
     const trade = await Trade.findById(req.params.id);
     if (!trade) return res.status(404).json({ error: 'Trade not found' });
