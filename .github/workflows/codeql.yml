@@ -2,17 +2,16 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   schedule:
-    - cron: '0 0 * * 0'  # Runs once every week
+    - cron: '0 0 * * 0'  # Weekly scan
 
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-
     permissions:
       actions: read
       contents: read
@@ -21,19 +20,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [javascript]
+        language: [ 'javascript', 'typescript', 'actions' ]  # 👈 This is key!
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v2
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v2
