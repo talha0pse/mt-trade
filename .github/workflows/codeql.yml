@@ -20,11 +20,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript', 'typescript', 'actions' ]  # 👈 This is key!
+        language: [ 'javascript', 'typescript', 'actions' ]  # ✅ Covers both configs
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # ✅ v3, latest and supported
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
